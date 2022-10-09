@@ -1,50 +1,37 @@
+import math
+
 from PIL import Image
-import matplotlib.pyplot as plt
+from numba import jit, cuda
 import sys
 
+ammount = 10
 
-matrix_1 = [
-    [ 1,  0, -1],
-    [ 1,  0, -1],
-    [ 1,  0, -1]
-]
-matrix_2 = [
-    [-1,  0,  1],
-    [-1,  0,  1],
-    [-1,  0,  1]
-]
+matrix_1 = [[ 1,  1, -1, -1]] * ammount
+
+matrix_2 = [[-1, -1,  1,  1]] * ammount
 matrix_3 = [
-    [ 1,  1,  1],
-    [ 0,  0,  0],
-    [-1, -1, -1]
+    [ 1] * ammount,
+    [ 1] * ammount,
+    [-1] * ammount,
+    [-1] * ammount
 ]
 matrix_4 = [
-    [-1, -1, -1],
-    [ 0,  0,  0],
-    [ 1,  1,  1]
+    [-1] * ammount,
+    [-1] * ammount,
+    [ 1] * ammount,
+    [ 1] * ammount
 ]
-matrix_5 = [
-    [-1, -1,  0],
-    [-1,  0,  1],
-    [ 0,  1,  1]
-]
-matrix_6 = [
-    [ 0, -1, -1],
-    [ 1,  0, -1],
-    [ 1,  1,  0]
-]
-matrix_7 = [
-    [ 1,  1,  0],
-    [ 1,  0, -1],
-    [ 0, -1, -1]
-]
-matrix_8 = [
-    [ 0,  1,  1],
-    [-1,  0,  1],
-    [-1, -1,  0]
-]
+#matrix_5 = []
+#matrix_6 = []
+#matrix_7 = []
+#matrix_8 = []
+#for i in range(ammount + 1):
+#    matrix_5.append(([-1] * (ammount-i)) + ([1] * i))
+#    matrix_6.append(([1] * (ammount-i)) + ([-1] * i))
+#    matrix_7.append(([1] * i) + ([-1] * (ammount-i)))
+#    matrix_8.append(([-1] * i) + ([1] * (ammount-i)))
 
-all_martices = [matrix_3, matrix_4, matrix_5, matrix_6, matrix_7, matrix_8] #, matrix_1, matrix_2
+all_martices = [matrix_1, matrix_2, matrix_3, matrix_4]#, matrix_5, matrix_6, matrix_7, matrix_8] #
 
 
 def two_in_one_pictures(file1, file2):
@@ -111,138 +98,70 @@ def make_sw(image):
     return new_image
 
 
-def filter_img_with_matrix(image, matrix):
-    old_pixels = image.load()
-    new_image = Image.new('RGB', (image.width, image.height))
+def normalize_pic(old_image):
+    new_image = Image.new('RGB', (old_image.width, old_image.height))
     new_pixels = new_image.load()
-    treshhold = 100
-    for i in range(image.size[0]):
-        for j in range(image.size[1]):
-            pixel_window = [
-                [0, 0, 0],
-                [0, 0, 0],
-                [0, 0, 0]
-            ]
-            if i == 0:
-                if j == 0:
-                    pixel_window[0][0] = old_pixels[i, j][0]
-                    pixel_window[0][1] = old_pixels[i, j][0]
-                    pixel_window[0][2] = old_pixels[i, j][0]
-                    pixel_window[1][0] = old_pixels[i, j][0]
-                    pixel_window[2][0] = old_pixels[i, j][0]
-
-                    pixel_window[1][1] = old_pixels[i, j][0]
-                    pixel_window[1][2] = old_pixels[i, j+1][0]
-                    pixel_window[2][1] = old_pixels[i+1, j][0]
-                    pixel_window[2][2] = old_pixels[i+1, j+1][0]
-                elif j == image.size[1]-1:
-                    pixel_window[0][0] = old_pixels[i, j][0]
-                    pixel_window[0][1] = old_pixels[i, j][0]
-                    pixel_window[0][2] = old_pixels[i, j][0]
-                    pixel_window[1][2] = old_pixels[i, j][0]
-                    pixel_window[2][2] = old_pixels[i, j][0]
-
-                    pixel_window[1][0] = old_pixels[i, j-1][0]
-                    pixel_window[1][1] = old_pixels[i, j][0]
-                    pixel_window[2][0] = old_pixels[i+1, j-1][0]
-                    pixel_window[2][1] = old_pixels[i+1, j][0]
-                else:
-                    pixel_window[0][0] = old_pixels[i, j][0]
-                    pixel_window[0][1] = old_pixels[i, j][0]
-                    pixel_window[0][2] = old_pixels[i, j][0]
-
-                    pixel_window[1][2] = old_pixels[i, j + 1][0]
-                    pixel_window[2][2] = old_pixels[i + 1, j + 1][0]
-                    pixel_window[1][0] = old_pixels[i, j-1][0]
-                    pixel_window[1][1] = old_pixels[i, j][0]
-                    pixel_window[2][0] = old_pixels[i+1, j-1][0]
-                    pixel_window[2][1] = old_pixels[i+1, j][0]
-            elif i == image.size[0]-1:
-                if j == 0:
-                    pixel_window[0][0] = old_pixels[i, j][0]
-                    pixel_window[1][0] = old_pixels[i, j][0]
-                    pixel_window[2][0] = old_pixels[i, j][0]
-                    pixel_window[2][1] = old_pixels[i, j][0]
-                    pixel_window[2][2] = old_pixels[i, j][0]
-
-                    pixel_window[0][1] = old_pixels[i - 1, j][0]
-                    pixel_window[0][2] = old_pixels[i - 1, j + 1][0]
-                    pixel_window[1][1] = old_pixels[i, j][0]
-                    pixel_window[1][2] = old_pixels[i, j + 1][0]
-                elif j == image.size[1]-1:
-                    pixel_window[2][0] = old_pixels[i, j][0]
-                    pixel_window[2][1] = old_pixels[i, j][0]
-                    pixel_window[2][2] = old_pixels[i, j][0]
-                    pixel_window[1][2] = old_pixels[i, j][0]
-                    pixel_window[0][2] = old_pixels[i, j][0]
-
-                    pixel_window[0][0] = old_pixels[i - 1, j - 1][0]
-                    pixel_window[0][1] = old_pixels[i - 1, j][0]
-                    pixel_window[1][0] = old_pixels[i, j - 1][0]
-                    pixel_window[1][1] = old_pixels[i, j][0]
-                else:
-                    pixel_window[2][0] = old_pixels[i, j][0]
-                    pixel_window[2][1] = old_pixels[i, j][0]
-                    pixel_window[2][2] = old_pixels[i, j][0]
-
-                    pixel_window[0][0] = old_pixels[i - 1, j - 1][0]
-                    pixel_window[0][1] = old_pixels[i - 1, j][0]
-                    pixel_window[1][0] = old_pixels[i, j - 1][0]
-                    pixel_window[1][1] = old_pixels[i, j][0]
-                    pixel_window[1][2] = old_pixels[i, j + 1][0]
-                    pixel_window[0][2] = old_pixels[i - 1, j + 1][0]
-            elif j == 0:
-                pixel_window[0][0] = old_pixels[i, j][0]
-                pixel_window[1][0] = old_pixels[i, j][0]
-                pixel_window[2][0] = old_pixels[i, j][0]
-
-                pixel_window[2][1] = old_pixels[i + 1, j][0]
-                pixel_window[2][2] = old_pixels[i + 1, j + 1][0]
-                pixel_window[0][1] = old_pixels[i - 1, j][0]
-                pixel_window[0][2] = old_pixels[i - 1, j + 1][0]
-                pixel_window[1][1] = old_pixels[i, j][0]
-                pixel_window[1][2] = old_pixels[i, j + 1][0]
-            elif j == image.size[1]-1:
-
-                pixel_window[2][2] = old_pixels[i, j][0]
-                pixel_window[1][2] = old_pixels[i, j][0]
-                pixel_window[0][2] = old_pixels[i, j][0]
-
-                pixel_window[2][0] = old_pixels[i + 1, j - 1][0]
-                pixel_window[2][1] = old_pixels[i + 1, j][0]
-                pixel_window[0][0] = old_pixels[i - 1, j - 1][0]
-                pixel_window[0][1] = old_pixels[i - 1, j][0]
-                pixel_window[1][0] = old_pixels[i, j - 1][0]
-                pixel_window[1][1] = old_pixels[i, j][0]
-            else:
-                pixel_window[0][0] = old_pixels[i - 1, j - 1][0]
-                pixel_window[0][1] = old_pixels[i - 1, j][0]
-                pixel_window[0][2] = old_pixels[i - 1, j + 1][0]
-                pixel_window[1][0] = old_pixels[i, j - 1][0]
-                pixel_window[1][1] = old_pixels[i, j][0]
-                pixel_window[1][2] = old_pixels[i, j + 1][0]
-                pixel_window[2][0] = old_pixels[i + 1, j - 1][0]
-                pixel_window[2][1] = old_pixels[i + 1, j][0]
-                pixel_window[2][2] = old_pixels[i + 1, j + 1][0]
-            sum_value = 0
-
-            for i_temp in range(len(pixel_window)):
-                for j_temp in range(len(pixel_window[i_temp])):
-                    sum_value = sum_value + (pixel_window[i_temp][j_temp] * matrix[i_temp][j_temp])
-            if sum_value > treshhold:
-                new_pixels[i, j] = (sum_value, sum_value, sum_value)
-
+    old_pixels = image.load()
+    max_value = -sys.maxsize + 1
+    min_value = sys.maxsize
+    for i in range(old_image.size[0]):
+        for j in range(old_image.size[1]):
+            value = old_pixels[i, j][0]
+            if value > max_value:
+                max_value = value
+            if value < min_value:
+                min_value = value
+    for i in range(old_image.size[0]):
+        for j in range(old_image.size[1]):
+            norm = int(((old_pixels[i, j][0] - min_value)/(max_value-min_value))*255)
+            new_pixels[i, j] = (norm, norm, norm)
     return new_image
 
 
-def process_all_filter(image, all_matrices):
+def filter_img_with_matrix(image, matrix):
+    thresh_hold = 400
+    old_pixels = image.load()
+    image_width = image.width
+    image_height = image.height
+    new_image = Image.new('RGB', (image_width, image_height))
+    new_pixels = new_image.load()
+
+    for i in range(image_width):
+        for j in range(image_height):
+            pixel_window = []
+            sum_value = 0
+            for i_offset in range(len(matrix)):
+                pixel_window.append([])
+                for j_offset in range(len(matrix[i_offset])):
+
+                    i_index = i
+                    j_index = j
+                    bounds = math.floor(i_offset/2)
+                    if (i - (i_offset-bounds) < image_width) and (i - (i_offset-bounds) > 0):
+                        i_index = i - (i_offset-bounds)
+                    if (j - (j_offset-bounds) < image_height) and (j - (j_offset-bounds) > 0):
+                        j_index = j - (j_offset-bounds)
+                    sum_value = sum_value + old_pixels[i_index, j_index][0] * matrix[i_offset][j_offset]
+
+            if sum_value > thresh_hold:
+                value = int((sum_value/(len(matrix) * len(matrix[0])))*255)
+                new_pixels[i, j] = (value, value, value)
+    return new_image
+
+
+def process_all_filter(origin_image, all_matrices):
     out_images = []
     i = 0
     print("processing all filters... ")
     for matrix in all_matrices:
         i = i + 1
-        print("processing ... ({}/{})".format(i, len(all_matrices)))
-        out_images.append(filter_img_with_matrix(image, matrix))
+        print("\r", end="")
+        print("processing ... ({}/{})".format(i, len(all_matrices)), end="")
+        new_image = filter_img_with_matrix(origin_image, matrix)
+        out_images.append(new_image)
+
+    print("\r", end="")
+    print("all done...")
     return out_images
 
 
@@ -255,46 +174,18 @@ def sum_images(images):
             for image in images:
                 temp_old_pixels = image.load()
                 sum = sum + temp_old_pixels[i, j][0]
-
             new_pixels[i, j] = (sum, sum, sum)
     return new_image
 
 
-def sum_images_norm(images):
-    new_image = Image.new('RGB', (images[0].width, images[0].height))
-    new_pixels = new_image.load()
-    max_value = -sys.maxsize + 1
-    min_value = sys.maxsize
-    for i in range(images[0].size[0]):
-        for j in range(images[0].size[1]):
-            sum = 0
-            for image in images:
-                temp_old_pixels = image.load()
-                sum = sum + temp_old_pixels[i, j][0]
-                avr = int(sum / len(images))
-                if avr > max_value:
-                    max_value = avr
-                if avr < min_value:
-                    min_value = avr
-
-            new_pixels[i, j] = (avr, avr, avr)
-    for i in range(images[0].size[0]):
-        for j in range(images[0].size[1]):
-            norm = int(((new_pixels[i, j][0] - min_value)/(max_value-min_value))*255)
-            new_pixels[i, j] = (norm, norm, norm)
-    return new_image
-
-
-image = Image.open("image6.jpg")
+image = Image.open("image5.jpg")
 image_avg_sw = make_sw(image)
+print("image sizes:", image.width, image.height)
 
-#matrix_0_erg = filter_img_with_matrix(image, matrix_7)
-#matrix_1_erg = filter_img_with_matrix(image, matrix_8)
 images_with_matrices = process_all_filter(image_avg_sw, all_martices)
 sum_image = sum_images(images_with_matrices)
-sum_image2 = sum_images_norm(images_with_matrices)
 
-t_i_o = three_in_one_pictures(image, sum_image, sum_image2)
+t_i_o = three_in_one_pictures(image, images_with_matrices[3], sum_image)
 #t_i_o = three_in_one_pictures(image_avg_sw, matrix_0_erg, matrix_1_erg)
 
 t_i_o.show()
