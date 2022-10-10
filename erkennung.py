@@ -1,7 +1,6 @@
 import math
 
 from PIL import Image
-from numba import jit, cuda
 import sys
 
 ammount = 10
