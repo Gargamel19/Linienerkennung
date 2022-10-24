@@ -61,6 +61,20 @@ def three_in_one_pictures(file1, file2, file3):
     return new_image
 
 
+def overlay_mask(image_1, image_2):
+    new_image = Image.new('RGB', (image_1.width, image_1.height))
+    old_1_pixels = image_1.load()
+    old_2_pixels = image_2.load()
+    new_pixels = new_image.load()
+    for i in range(new_image.width):
+        for j in range(new_image.height):
+            if old_2_pixels[i, j][0] > 100:
+                new_pixels[i, j] = (255, 0, 0)
+            else:
+                new_pixels[i, j] = old_1_pixels[i, j]
+    return new_image
+
+
 def make_sw_min(old_image):
     old_pixels = old_image.load()
     new_image = Image.new('RGB', (old_image.width, old_image.height))
@@ -178,7 +192,7 @@ image = Image.open("image5.jpg")
 image_avg_sw = make_sw_min(image)
 print("image sizes:", image.width, image.height)
 print("COMPUTE SELECTED MATRICES")
-images_with_selected_matrices = process_all_filter(image_avg_sw, selected_martices)
+images_with_selected_matrices = process_all_filter(image_avg_sw, [matrix_2])
 print("COMPUTE REST MATRICES")
 images_with_rest_matrices = process_all_filter(image_avg_sw, rest_matices)
 print("COMBINE RESULTS")
@@ -189,7 +203,10 @@ print("SUM MASKS (2) ... ")
 sum_all_image = sum_images(images_with_all_matrices)
 
 print("DISPLAY ... ")
-t_i_o = three_in_one_pictures(image, sum_selected_image, sum_all_image)
+out1 = overlay_mask(image, sum_selected_image)
+out2 = overlay_mask(image, sum_all_image)
+
+t_i_o = three_in_one_pictures(image, out1, out2)
 
 t_i_o.show()
 year = datetime.now().year
